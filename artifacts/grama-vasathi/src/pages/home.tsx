@@ -246,7 +246,9 @@ export default function Home() {
                       {booking.guestName} booked <span className="font-bold text-primary">{booking.homestayName}</span>
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      {format(new Date(booking.checkInDate), "MMM d")}–{format(new Date(booking.checkOutDate), "MMM d")} · {booking.nights} {booking.nights === 1 ? "night" : "nights"} in {booking.village}
+                      {booking.checkOutDate
+                        ? `${format(new Date(booking.checkInDate), "MMM d")}–${format(new Date(booking.checkOutDate), "MMM d")} · ${booking.nights} ${booking.nights === 1 ? "night" : "nights"}`
+                        : format(new Date(booking.checkInDate), "MMM do")} in {booking.village}
                     </p>
                   </div>
                 ))}
