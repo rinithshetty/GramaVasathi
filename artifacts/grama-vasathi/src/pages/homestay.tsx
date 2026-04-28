@@ -27,6 +27,14 @@ import { Calendar } from "@/components/ui/calendar";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
@@ -58,6 +66,16 @@ export default function HomestayDetail() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [confirmation, setConfirmation] = useState<{
+    homestayName: string;
+    village: string;
+    checkInDate: string;
+    checkOutDate: string;
+    nights: number;
+    guests: number;
+    totalPrice: number;
+    guestName: string;
+  } | null>(null);
 
   const { data: homestay, isLoading: loadingHomestay } = useGetHomestay(homestayId, {
     query: { enabled: !!homestayId, queryKey: getGetHomestayQueryKey(homestayId) },
@@ -99,12 +117,18 @@ export default function HomestayDetail() {
         },
       },
       {
-        onSuccess: () => {
-          toast({
-            title: "Booking Confirmed! 🎉",
-            description: `You're all set to visit ${homestay?.name}.`,
+        onSuccess: (booking) => {
+          setConfirmation({
+            homestayName: homestay?.name ?? "your homestay",
+            village: homestay?.village ?? "",
+            checkInDate: booking.checkInDate,
+            checkOutDate: booking.checkOutDate,
+            nights: booking.nights,
+            guests: booking.guests,
+            totalPrice: booking.totalPrice,
+            guestName: booking.guestName,
           });
-          form.reset();
+          form.reset({ guestName: "", guestEmail: "", guests: 1 });
           queryClient.invalidateQueries({ queryKey: getGetHomestayAvailabilityQueryKey(homestayId) });
           queryClient.invalidateQueries({ queryKey: getGetRecentBookingsQueryKey({ limit: 3 }) });
           queryClient.invalidateQueries({ queryKey: getGetInsightsSummaryQueryKey() });
@@ -443,6 +467,85 @@ export default function HomestayDetail() {
           </div>
         </div>
       </div>
+
+      <Dialog
+        open={!!confirmation}
+        onOpenChange={(open) => !open && setConfirmation(null)}
+      >
+        <DialogContent className="sm:max-w-md" data-testid="dialog-booking-confirmed">
+          <DialogHeader>
+            <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
+              <CheckCircle2 className="w-7 h-7 text-primary" />
+            </div>
+            <DialogTitle className="text-2xl font-serif text-center">
+              Your stay is confirmed
+            </DialogTitle>
+            <DialogDescription className="text-center">
+              {confirmation?.guestName}, your hosts at{" "}
+              <span className="font-bold text-primary">
+                {confirmation?.homestayName}
+              </span>{" "}
+              are looking forward to welcoming you.
+            </DialogDescription>
+          </DialogHeader>
+
+          {confirmation && (
+            <div className="rounded-xl border border-border/50 bg-muted/30 p-4 mt-2 space-y-3 text-sm">
+              <Row label="Where">
+                {confirmation.homestayName}
+                {confirmation.village ? `, ${confirmation.village}` : ""}
+              </Row>
+              <Row label="Check-in">
+                {format(new Date(confirmation.checkInDate), "EEE, MMM d, yyyy")}
+              </Row>
+              <Row label="Check-out">
+                {format(new Date(confirmation.checkOutDate), "EEE, MMM d, yyyy")}
+              </Row>
+              <Row label="Stay length">
+                {confirmation.nights}{" "}
+                {confirmation.nights === 1 ? "night" : "nights"} ·{" "}
+                {confirmation.guests}{" "}
+                {confirmation.guests === 1 ? "guest" : "guests"}
+              </Row>
+              <Separator />
+              <div className="flex items-center justify-between font-bold text-base text-foreground">
+                <span>Total</span>
+                <span data-testid="text-confirmation-total">
+                  ₹{confirmation.totalPrice.toLocaleString("en-IN")}
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground italic pt-1">
+                You'll settle the payment directly with your host on arrival.
+              </p>
+            </div>
+          )}
+
+          <DialogFooter className="sm:justify-center mt-2">
+            <Button
+              onClick={() => setConfirmation(null)}
+              className="w-full sm:w-auto"
+              data-testid="button-confirmation-close"
+            >
+              Wonderful, thank you
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function Row({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-start justify-between gap-4">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="font-medium text-foreground text-right">{children}</span>
     </div>
   );
 }
