@@ -97,7 +97,10 @@ export const ListBookingsResponseItem = zod.object({
   guestName: zod.string(),
   guestEmail: zod.string().optional(),
   checkInDate: zod.coerce.date(),
+  checkOutDate: zod.coerce.date(),
+  nights: zod.number(),
   guests: zod.number(),
+  totalPrice: zod.number().describe("INR total for the stay"),
   createdAt: zod.coerce.date(),
 });
 export const ListBookingsResponse = zod.array(ListBookingsResponseItem);
@@ -114,6 +117,7 @@ export const CreateBookingBody = zod.object({
   guestName: zod.string().min(createBookingBodyGuestNameMin),
   guestEmail: zod.string().optional(),
   checkInDate: zod.coerce.date(),
+  checkOutDate: zod.coerce.date(),
   guests: zod.number().min(1).max(createBookingBodyGuestsMax),
 });
 
@@ -195,6 +199,8 @@ export const GetRecentBookingsResponseItem = zod.object({
   id: zod.number(),
   guestName: zod.string(),
   checkInDate: zod.coerce.date(),
+  checkOutDate: zod.coerce.date(),
+  nights: zod.number(),
   createdAt: zod.coerce.date(),
   homestayId: zod.number(),
   homestayName: zod.string(),

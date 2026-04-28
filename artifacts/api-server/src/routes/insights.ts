@@ -13,6 +13,7 @@ import {
   GetTopHomestaysQueryParams,
   GetTopHomestaysResponse,
 } from "@workspace/api-zod";
+import { nightsBetween } from "../lib/dates";
 
 const router: IRouter = Router();
 
@@ -71,6 +72,7 @@ router.get("/insights/recent-bookings", async (req, res): Promise<void> => {
       id: bookingsTable.id,
       guestName: bookingsTable.guestName,
       checkInDate: bookingsTable.checkInDate,
+      checkOutDate: bookingsTable.checkOutDate,
       createdAt: bookingsTable.createdAt,
       homestayId: bookingsTable.homestayId,
       homestayName: homestaysTable.name,
@@ -84,8 +86,15 @@ router.get("/insights/recent-bookings", async (req, res): Promise<void> => {
   res.json(
     GetRecentBookingsResponse.parse(
       rows.map((r) => ({
-        ...r,
+        id: r.id,
+        guestName: r.guestName,
+        checkInDate: r.checkInDate,
+        checkOutDate: r.checkOutDate,
+        nights: nightsBetween(r.checkInDate, r.checkOutDate),
         createdAt: r.createdAt.toISOString(),
+        homestayId: r.homestayId,
+        homestayName: r.homestayName,
+        village: r.village,
       })),
     ),
   );

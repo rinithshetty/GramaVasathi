@@ -12,6 +12,10 @@ export interface Booking {
   guestName: string;
   guestEmail?: string;
   checkInDate: Date;
+  checkOutDate: Date;
+  nights: number;
   guests: number;
+  /** INR total for the stay */
+  totalPrice: number;
   createdAt: Date;
 }

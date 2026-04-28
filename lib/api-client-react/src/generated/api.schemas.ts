@@ -39,7 +39,11 @@ export interface Booking {
   guestName: string;
   guestEmail?: string;
   checkInDate: string;
+  checkOutDate: string;
+  nights: number;
   guests: number;
+  /** INR total for the stay */
+  totalPrice: number;
   createdAt: string;
 }
 
@@ -49,6 +53,7 @@ export interface CreateBookingBody {
   guestName: string;
   guestEmail?: string;
   checkInDate: string;
+  checkOutDate: string;
   /**
    * @minimum 1
    * @maximum 12
@@ -96,6 +101,8 @@ export interface RecentBooking {
   id: number;
   guestName: string;
   checkInDate: string;
+  checkOutDate: string;
+  nights: number;
   createdAt: string;
   homestayId: number;
   homestayName: string;

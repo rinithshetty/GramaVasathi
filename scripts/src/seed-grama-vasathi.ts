@@ -333,15 +333,16 @@ async function main() {
     homestayIdx: number;
     guestName: string;
     days: number;
+    nights: number;
     guests: number;
     createdAgoHrs: number;
   }[] = [
-    { homestayIdx: 0, guestName: "Aarav Mehta", days: 5, guests: 2, createdAgoHrs: 2 },
-    { homestayIdx: 3, guestName: "Sneha Kurian", days: 12, guests: 3, createdAgoHrs: 6 },
-    { homestayIdx: 5, guestName: "Karan Bhatia", days: 21, guests: 2, createdAgoHrs: 18 },
-    { homestayIdx: 1, guestName: "Tara D'Souza", days: 8, guests: 2, createdAgoHrs: 32 },
-    { homestayIdx: 6, guestName: "Reema Joshi", days: 14, guests: 4, createdAgoHrs: 48 },
-    { homestayIdx: 2, guestName: "Vikram Rao", days: 25, guests: 2, createdAgoHrs: 64 },
+    { homestayIdx: 0, guestName: "Aarav Mehta", days: 5, nights: 3, guests: 2, createdAgoHrs: 2 },
+    { homestayIdx: 3, guestName: "Sneha Kurian", days: 12, nights: 4, guests: 3, createdAgoHrs: 6 },
+    { homestayIdx: 5, guestName: "Karan Bhatia", days: 21, nights: 5, guests: 2, createdAgoHrs: 18 },
+    { homestayIdx: 1, guestName: "Tara D'Souza", days: 8, nights: 2, guests: 2, createdAgoHrs: 32 },
+    { homestayIdx: 6, guestName: "Reema Joshi", days: 14, nights: 3, guests: 4, createdAgoHrs: 48 },
+    { homestayIdx: 2, guestName: "Vikram Rao", days: 25, nights: 2, guests: 2, createdAgoHrs: 64 },
   ];
 
   for (const b of seedBookings) {
@@ -352,6 +353,7 @@ async function main() {
       homestayId,
       guestName: b.guestName,
       checkInDate: dPlus(b.days),
+      checkOutDate: dPlus(b.days + b.nights),
       guests: b.guests,
       createdAt: created,
     });

@@ -12,6 +12,7 @@ export interface CreateBookingBody {
   guestName: string;
   guestEmail?: string;
   checkInDate: Date;
+  checkOutDate: Date;
   /**
    * @minimum 1
    * @maximum 12

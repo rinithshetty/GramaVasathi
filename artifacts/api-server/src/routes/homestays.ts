@@ -10,6 +10,7 @@ import {
   GetHomestayAvailabilityResponse,
 } from "@workspace/api-zod";
 import { computeScore } from "../lib/checklist";
+import { expandNights, formatISODate } from "../lib/dates";
 
 const router: IRouter = Router();
 
@@ -92,24 +93,31 @@ router.get(
 
     const today = new Date();
     today.setUTCHours(0, 0, 0, 0);
+    const todayStr = formatISODate(today);
 
+    // Pull any booking that ends today or later (still affects future availability).
     const rows = await db
-      .select({ checkInDate: bookingsTable.checkInDate })
+      .select({
+        checkInDate: bookingsTable.checkInDate,
+        checkOutDate: bookingsTable.checkOutDate,
+      })
       .from(bookingsTable)
       .where(
         and(
           eq(bookingsTable.homestayId, params.data.id),
-          gte(bookingsTable.checkInDate, today.toISOString().slice(0, 10)),
+          gte(bookingsTable.checkOutDate, todayStr),
         ),
       );
 
-    const bookedDates = Array.from(
-      new Set(rows.map((r) => r.checkInDate)),
-    ).sort();
+    const all = new Set<string>();
+    for (const r of rows) {
+      for (const d of expandNights(r.checkInDate, r.checkOutDate)) {
+        if (d >= todayStr) all.add(d);
+      }
+    }
+    const bookedDates = Array.from(all).sort();
 
-    res.json(
-      GetHomestayAvailabilityResponse.parse({ bookedDates }),
-    );
+    res.json(GetHomestayAvailabilityResponse.parse({ bookedDates }));
   },
 );
 

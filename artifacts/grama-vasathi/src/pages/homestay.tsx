@@ -1,11 +1,11 @@
 import { useState, useMemo } from "react";
 import { useParams, Link } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
-import { format, isBefore, startOfDay } from "date-fns";
+import { format, isBefore, startOfDay, differenceInCalendarDays } from "date-fns";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { MapPin, Star, Users, Home, BedDouble, ShieldCheck, CheckCircle2, ChevronLeft } from "lucide-react";
+import { MapPin, Star, Users, Home, BedDouble, ShieldCheck, CheckCircle2, ChevronLeft, CalendarDays } from "lucide-react";
 
 import {
   useGetHomestay,
@@ -30,12 +30,27 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
-const bookingSchema = z.object({
-  guestName: z.string().min(2, "Name must be at least 2 characters"),
-  guestEmail: z.string().email("Invalid email address").optional().or(z.literal("")),
-  checkInDate: z.date({ required_error: "Please select a check-in date" }),
-  guests: z.coerce.number().min(1).max(12),
-});
+const bookingSchema = z
+  .object({
+    guestName: z.string().min(2, "Name must be at least 2 characters"),
+    guestEmail: z
+      .string()
+      .email("Invalid email address")
+      .optional()
+      .or(z.literal("")),
+    dateRange: z.object(
+      {
+        from: z.date({ required_error: "Select check-in" }),
+        to: z.date({ required_error: "Select check-out" }),
+      },
+      { required_error: "Pick your dates" },
+    ),
+    guests: z.coerce.number().min(1).max(12),
+  })
+  .refine(
+    (v) => v.dateRange.to && v.dateRange.from && v.dateRange.to > v.dateRange.from,
+    { message: "Check-out must be after check-in", path: ["dateRange"] },
+  );
 
 export default function HomestayDetail() {
   const { id } = useParams<{ id: string }>();
@@ -78,7 +93,8 @@ export default function HomestayDetail() {
           homestayId,
           guestName: values.guestName,
           guestEmail: values.guestEmail || undefined,
-          checkInDate: format(values.checkInDate, "yyyy-MM-dd"),
+          checkInDate: format(values.dateRange.from, "yyyy-MM-dd"),
+          checkOutDate: format(values.dateRange.to, "yyyy-MM-dd"),
           guests: values.guests,
         },
       },
@@ -267,53 +283,62 @@ export default function HomestayDetail() {
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                       <FormField
                         control={form.control}
-                        name="checkInDate"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-col">
-                            <FormLabel className="font-bold">Check-in Date</FormLabel>
-                            <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
-                              <PopoverTrigger asChild>
-                                <FormControl>
-                                  <Button
-                                    variant={"outline"}
-                                    className={cn(
-                                      "w-full pl-3 text-left font-normal h-12 bg-muted/50 border-border/50",
-                                      !field.value && "text-muted-foreground"
-                                    )}
-                                  >
-                                    {field.value ? (
-                                      format(field.value, "PPP")
-                                    ) : (
-                                      <span>Select a date</span>
-                                    )}
-                                    <Calendar className="ml-auto h-4 w-4 opacity-50" />
-                                  </Button>
-                                </FormControl>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar
-                                  mode="single"
-                                  selected={field.value}
-                                  onSelect={(date) => {
-                                    field.onChange(date);
-                                    setCalendarOpen(false);
-                                  }}
-                                  disabled={(date) =>
-                                    isBefore(date, startOfDay(new Date())) ||
-                                    bookedDates.some(
-                                      (booked) =>
-                                        date.getDate() === booked.getDate() &&
-                                        date.getMonth() === booked.getMonth() &&
-                                        date.getFullYear() === booked.getFullYear()
-                                    )
-                                  }
-                                  initialFocus
-                                />
-                              </PopoverContent>
-                            </Popover>
-                            <FormMessage />
-                          </FormItem>
-                        )}
+                        name="dateRange"
+                        render={({ field }) => {
+                          const range = field.value as
+                            | { from?: Date; to?: Date }
+                            | undefined;
+                          const label =
+                            range?.from && range?.to
+                              ? `${format(range.from, "MMM d")} – ${format(range.to, "MMM d, yyyy")}`
+                              : range?.from
+                                ? `${format(range.from, "MMM d")} – select check-out`
+                                : "Select your dates";
+                          return (
+                            <FormItem className="flex flex-col">
+                              <FormLabel className="font-bold">Check-in / Check-out</FormLabel>
+                              <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+                                <PopoverTrigger asChild>
+                                  <FormControl>
+                                    <Button
+                                      variant={"outline"}
+                                      className={cn(
+                                        "w-full pl-3 text-left font-normal h-12 bg-muted/50 border-border/50",
+                                        !range?.from && "text-muted-foreground",
+                                      )}
+                                      data-testid="button-date-range"
+                                    >
+                                      {label}
+                                      <CalendarDays className="ml-auto h-4 w-4 opacity-50" />
+                                    </Button>
+                                  </FormControl>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                  <Calendar
+                                    mode="range"
+                                    numberOfMonths={2}
+                                    selected={range as any}
+                                    onSelect={(r: any) => {
+                                      field.onChange(r);
+                                      if (r?.from && r?.to) setCalendarOpen(false);
+                                    }}
+                                    disabled={(date) =>
+                                      isBefore(date, startOfDay(new Date())) ||
+                                      bookedDates.some(
+                                        (booked) =>
+                                          date.getDate() === booked.getDate() &&
+                                          date.getMonth() === booked.getMonth() &&
+                                          date.getFullYear() === booked.getFullYear(),
+                                      )
+                                    }
+                                    initialFocus
+                                  />
+                                </PopoverContent>
+                              </Popover>
+                              <FormMessage />
+                            </FormItem>
+                          );
+                        }}
                       />
 
                       <FormField
@@ -359,6 +384,38 @@ export default function HomestayDetail() {
                           </FormItem>
                         )}
                       />
+
+                      {(() => {
+                        const r = form.watch("dateRange") as
+                          | { from?: Date; to?: Date }
+                          | undefined;
+                        const nights =
+                          r?.from && r?.to
+                            ? Math.max(0, differenceInCalendarDays(r.to, r.from))
+                            : 0;
+                        if (nights <= 0) return null;
+                        const subtotal = nights * homestay.pricePerNight;
+                        return (
+                          <div className="rounded-xl bg-muted/40 border border-border/50 p-4 space-y-2 text-sm">
+                            <div className="flex items-center justify-between text-foreground/80">
+                              <span>
+                                ₹{homestay.pricePerNight.toLocaleString("en-IN")} × {nights}{" "}
+                                {nights === 1 ? "night" : "nights"}
+                              </span>
+                              <span className="font-medium">
+                                ₹{subtotal.toLocaleString("en-IN")}
+                              </span>
+                            </div>
+                            <Separator />
+                            <div className="flex items-center justify-between font-bold text-base text-foreground">
+                              <span>Total</span>
+                              <span data-testid="text-booking-total">
+                                ₹{subtotal.toLocaleString("en-IN")}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })()}
 
                       <Button 
                         type="submit" 

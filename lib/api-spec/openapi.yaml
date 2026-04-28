@@ -295,24 +295,38 @@ components:
     Booking:
       type: object
       required:
-        [id, homestayId, guestName, checkInDate, guests, createdAt]
+        [
+          id,
+          homestayId,
+          guestName,
+          checkInDate,
+          checkOutDate,
+          nights,
+          guests,
+          totalPrice,
+          createdAt,
+        ]
       properties:
         id: { type: integer }
         homestayId: { type: integer }
         guestName: { type: string }
         guestEmail: { type: string }
         checkInDate: { type: string, format: date }
+        checkOutDate: { type: string, format: date }
+        nights: { type: integer }
         guests: { type: integer }
+        totalPrice: { type: integer, description: "INR total for the stay" }
         createdAt: { type: string, format: date-time }
 
     CreateBookingBody:
       type: object
-      required: [homestayId, guestName, checkInDate, guests]
+      required: [homestayId, guestName, checkInDate, checkOutDate, guests]
       properties:
         homestayId: { type: integer }
         guestName: { type: string, minLength: 2 }
         guestEmail: { type: string }
         checkInDate: { type: string, format: date }
+        checkOutDate: { type: string, format: date }
         guests: { type: integer, minimum: 1, maximum: 12 }
 
     ChecklistItem:
@@ -380,6 +394,8 @@ components:
           id,
           guestName,
           checkInDate,
+          checkOutDate,
+          nights,
           createdAt,
           homestayId,
           homestayName,
@@ -389,6 +405,8 @@ components:
         id: { type: integer }
         guestName: { type: string }
         checkInDate: { type: string, format: date }
+        checkOutDate: { type: string, format: date }
+        nights: { type: integer }
         createdAt: { type: string, format: date-time }
         homestayId: { type: integer }
         homestayName: { type: string }

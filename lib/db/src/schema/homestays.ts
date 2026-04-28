@@ -41,6 +41,7 @@ export const bookingsTable = pgTable(
     guestName: text("guest_name").notNull(),
     guestEmail: text("guest_email"),
     checkInDate: date("check_in_date").notNull(),
+    checkOutDate: date("check_out_date").notNull(),
     guests: integer("guests").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()

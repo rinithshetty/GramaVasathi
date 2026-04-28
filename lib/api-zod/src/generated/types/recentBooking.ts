@@ -10,6 +10,8 @@ export interface RecentBooking {
   id: number;
   guestName: string;
   checkInDate: Date;
+  checkOutDate: Date;
+  nights: number;
   createdAt: Date;
   homestayId: number;
   homestayName: string;
