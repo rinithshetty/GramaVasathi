@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Grama Vasathi"
+version = "1.0.0"
+id = "artifacts/grama-vasathi"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 19607
+
+[services.development]
+run = "pnpm --filter @workspace/grama-vasathi run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/grama-vasathi", "run", "build" ]
+publicDir = "artifacts/grama-vasathi/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "19607"
+BASE_PATH = "/"

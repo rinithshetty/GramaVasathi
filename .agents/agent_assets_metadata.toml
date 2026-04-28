@@ -1,0 +1,8 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "mVIlaalblOC1cIc51BuvP"
+uri = "file://artifacts/grama-vasathi/src/assets/images/hero.png"
+type = "image"
+title = "village homestay hero image"

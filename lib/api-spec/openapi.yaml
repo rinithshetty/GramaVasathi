@@ -3,13 +3,21 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Grama Vasathi API — rural homestays, bookings, and host readiness checklist
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: homestays
+    description: Browse and manage rural homestays
+  - name: bookings
+    description: Guest bookings for homestays
+  - name: checklist
+    description: Host readiness checklist scoring
+  - name: insights
+    description: Aggregated stats and feeds
 paths:
   /healthz:
     get:
@@ -24,6 +32,209 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /homestays:
+    get:
+      operationId: listHomestays
+      tags: [homestays]
+      summary: List homestays
+      parameters:
+        - in: query
+          name: region
+          schema: { type: string }
+          required: false
+        - in: query
+          name: q
+          schema: { type: string }
+          required: false
+          description: Free text search across name, village, host
+      responses:
+        "200":
+          description: List of homestays
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Homestay"
+
+  /homestays/{id}:
+    get:
+      operationId: getHomestay
+      tags: [homestays]
+      summary: Get a homestay by id
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Homestay detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HomestayDetail"
+        "404":
+          description: Not found
+
+  /homestays/{id}/availability:
+    get:
+      operationId: getHomestayAvailability
+      tags: [homestays]
+      summary: Get already-booked dates for a homestay (next 90 days)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Booked dates
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [bookedDates]
+                properties:
+                  bookedDates:
+                    type: array
+                    items: { type: string, format: date }
+
+  /bookings:
+    get:
+      operationId: listBookings
+      tags: [bookings]
+      summary: List recent bookings
+      parameters:
+        - in: query
+          name: homestayId
+          schema: { type: integer }
+          required: false
+      responses:
+        "200":
+          description: Bookings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Booking"
+    post:
+      operationId: createBooking
+      tags: [bookings]
+      summary: Create a booking
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBookingBody"
+      responses:
+        "201":
+          description: Booking created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Booking"
+        "400":
+          description: Invalid input
+        "409":
+          description: Date already booked
+
+  /homestays/{id}/checklist:
+    get:
+      operationId: getHomestayChecklist
+      tags: [checklist]
+      summary: Get latest readiness checklist for a homestay
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Latest checklist (defaults if none saved)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChecklistResult"
+    put:
+      operationId: saveHomestayChecklist
+      tags: [checklist]
+      summary: Save readiness checklist for a homestay
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SaveChecklistBody"
+      responses:
+        "200":
+          description: Saved checklist with computed score
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChecklistResult"
+
+  /insights/summary:
+    get:
+      operationId: getInsightsSummary
+      tags: [insights]
+      summary: Aggregated stats for the landing experience
+      responses:
+        "200":
+          description: Summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InsightsSummary"
+
+  /insights/recent-bookings:
+    get:
+      operationId: getRecentBookings
+      tags: [insights]
+      summary: Recent booking activity feed
+      parameters:
+        - in: query
+          name: limit
+          schema: { type: integer, default: 8 }
+          required: false
+      responses:
+        "200":
+          description: Recent bookings with homestay info
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RecentBooking"
+
+  /insights/top-homestays:
+    get:
+      operationId: getTopHomestays
+      tags: [insights]
+      summary: Top homestays by readiness score
+      parameters:
+        - in: query
+          name: limit
+          schema: { type: integer, default: 5 }
+          required: false
+      responses:
+        "200":
+          description: Top homestays
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TopHomestay"
+
 components:
   schemas:
     HealthStatus:
@@ -31,6 +242,165 @@ components:
       properties:
         status:
           type: string
-      required:
-        - status
+      required: [status]
 
+    Homestay:
+      type: object
+      required:
+        [
+          id,
+          name,
+          host,
+          village,
+          region,
+          state,
+          pricePerNight,
+          rating,
+          reviewCount,
+          imageUrl,
+          activities,
+          tags,
+        ]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        host: { type: string }
+        village: { type: string }
+        region: { type: string }
+        state: { type: string }
+        pricePerNight: { type: integer, description: "INR per night" }
+        rating: { type: number, format: float }
+        reviewCount: { type: integer }
+        imageUrl: { type: string }
+        activities:
+          type: array
+          items: { type: string }
+        tags:
+          type: array
+          items: { type: string }
+
+    HomestayDetail:
+      allOf:
+        - $ref: "#/components/schemas/Homestay"
+        - type: object
+          required: [description, maxGuests, bedrooms, readinessScore]
+          properties:
+            description: { type: string }
+            maxGuests: { type: integer }
+            bedrooms: { type: integer }
+            readinessScore:
+              type: integer
+              description: "0–100 host readiness score"
+
+    Booking:
+      type: object
+      required:
+        [id, homestayId, guestName, checkInDate, guests, createdAt]
+      properties:
+        id: { type: integer }
+        homestayId: { type: integer }
+        guestName: { type: string }
+        guestEmail: { type: string }
+        checkInDate: { type: string, format: date }
+        guests: { type: integer }
+        createdAt: { type: string, format: date-time }
+
+    CreateBookingBody:
+      type: object
+      required: [homestayId, guestName, checkInDate, guests]
+      properties:
+        homestayId: { type: integer }
+        guestName: { type: string, minLength: 2 }
+        guestEmail: { type: string }
+        checkInDate: { type: string, format: date }
+        guests: { type: integer, minimum: 1, maximum: 12 }
+
+    ChecklistItem:
+      type: object
+      required: [key, label, checked]
+      properties:
+        key: { type: string }
+        label: { type: string }
+        checked: { type: boolean }
+
+    ChecklistResult:
+      type: object
+      required: [homestayId, items, score, updatedAt]
+      properties:
+        homestayId: { type: integer }
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/ChecklistItem" }
+        score:
+          type: integer
+          description: "0–100 readiness score"
+        updatedAt: { type: string, format: date-time }
+
+    SaveChecklistBody:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+            required: [key, checked]
+            properties:
+              key: { type: string }
+              checked: { type: boolean }
+
+    InsightsSummary:
+      type: object
+      required:
+        [
+          totalHomestays,
+          totalVillages,
+          totalBookings,
+          averageReadiness,
+          topRegions,
+        ]
+      properties:
+        totalHomestays: { type: integer }
+        totalVillages: { type: integer }
+        totalBookings: { type: integer }
+        averageReadiness: { type: integer }
+        topRegions:
+          type: array
+          items:
+            type: object
+            required: [region, count]
+            properties:
+              region: { type: string }
+              count: { type: integer }
+
+    RecentBooking:
+      type: object
+      required:
+        [
+          id,
+          guestName,
+          checkInDate,
+          createdAt,
+          homestayId,
+          homestayName,
+          village,
+        ]
+      properties:
+        id: { type: integer }
+        guestName: { type: string }
+        checkInDate: { type: string, format: date }
+        createdAt: { type: string, format: date-time }
+        homestayId: { type: integer }
+        homestayName: { type: string }
+        village: { type: string }
+
+    TopHomestay:
+      type: object
+      required: [id, name, village, region, readinessScore, imageUrl]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        village: { type: string }
+        region: { type: string }
+        readinessScore: { type: integer }
+        imageUrl: { type: string }
